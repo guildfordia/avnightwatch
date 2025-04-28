@@ -181,3 +181,5 @@ fi
 
 echo "📂 Opening Live Set: $ALS_FILE"
 /usr/bin/open -a "Ableton Live 11 Suite" "$ALS_FILE"
+
+docker logs sentiment-api -f
