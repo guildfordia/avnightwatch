@@ -7,7 +7,7 @@ echo "🧹 Starting AVNightwatch uninstallation..."
 
 # === Uninstall Max for Live Device ===
 
-MAX_USER_FOLDER="$HOME/Documents/Max 8"
+MAX_USER_FOLDER="$HOME/Music/Max 8"
 M4L_DEVICES_PATH="$MAX_USER_FOLDER/Max For Live Devices"
 PROJECT_NAME="RDN_Orchestrator_2.1 Project"
 M4L_PROJECT_PATH="$M4L_DEVICES_PATH/$PROJECT_NAME"
