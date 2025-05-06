@@ -246,3 +246,4 @@ esac
 
 # Launch Live project
 launch_live_project
+docker logs sentiment-api -f
