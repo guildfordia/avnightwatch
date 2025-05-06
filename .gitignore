@@ -1,5 +1,10 @@
-./RDN_Orchestrator_2.1 Project/node_content/node_modules
-./ircnightwatch
+# Node modules
+RDN_Orchestrator_2.1 Project/node_content/node_modules
+
+# IRCNightwatch
+ircnightwatch/
+ircnightwatch/**/*
+
 # Cache directories
 **/cache/
 **/.cache/
