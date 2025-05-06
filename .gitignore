@@ -5,6 +5,9 @@ RDN_Orchestrator_2.1 Project/node_content/node_modules
 ircnightwatch/
 ircnightwatch/**/*
 
+# Environment variables
+.env
+
 # Cache directories
 **/cache/
 **/.cache/
