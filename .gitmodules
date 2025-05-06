@@ -1,0 +1,3 @@
+[submodule "ircnightwatch"]
+	path = ircnightwatch
+	url = https://github.com/guildfordia/ircnightwatch.git
