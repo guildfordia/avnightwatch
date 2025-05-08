@@ -25,9 +25,43 @@ check_docker() {
     fi
 }
 
+# Function to check version and update if needed
+check_and_update_version() {
+    local local_version="0"
+    local github_version="0"
+    
+    # Get local version if version file exists
+    if [ -f "ircnightwatch/version" ]; then
+        local_version=$(cat ircnightwatch/version)
+    fi
+    
+    # Get GitHub version
+    github_version=$(curl -s https://raw.githubusercontent.com/guildfordia/ircnightwatch/main/version)
+    
+    if [ -z "$github_version" ]; then
+        echo "⚠️ Could not fetch version from GitHub. Using local version."
+        return 0
+    fi
+    
+    # Compare versions (handle non-numeric versions)
+    if [[ "$github_version" =~ ^[0-9]+$ ]] && [[ "$local_version" =~ ^[0-9]+$ ]]; then
+        if [ "$github_version" -gt "$local_version" ]; then
+            echo "📥 New version available: $github_version (current: $local_version)"
+            echo "🔄 Updating IRCNightwatch..."
+            rm -rf ircnightwatch
+            return 1
+        else
+            echo "✅ IRCNightwatch is up to date (version $local_version)"
+            return 0
+        fi
+    else
+        echo "⚠️ Version format not recognized. Skipping version check."
+        return 0
+    fi
+}
+
 # Function to setup IRCNightwatch
 setup_ircnightwatch() {
-
     # Create Docker network if it doesn't exist
     if ! docker network ls | grep -q "irc-net"; then
         echo "🌐 Creating Docker network irc-net..."
@@ -39,7 +73,7 @@ setup_ircnightwatch() {
         echo "✅ Docker network irc-net already exists"
     fi
 
-    if [ ! -d "ircnightwatch" ]; then
+    if [ ! -d "ircnightwatch" ] || ! check_and_update_version; then
         echo "📥 Downloading IRCNightwatch project from GitHub using curl..."
         ZIP_URL="https://github.com/guildfordia/ircnightwatch/archive/refs/heads/main.zip"
         ZIP_FILE="ircnightwatch.zip"
@@ -59,28 +93,27 @@ setup_ircnightwatch() {
         mv ircnightwatch-main ircnightwatch
         echo "✅ Repo downloaded and extracted to ./ircnightwatch"
     else
-        echo "✅ IRCNightwatch folder already exists. Skipping download."
+        echo "✅ IRCNightwatch folder already exists and is up to date."
     fi
 
     # Build components
-    #echo "🔨 Building projects..."
-    #for component in "IRC" "Sentiment"; do
-    #    echo "Building $component..."
-    #    make env-setup
-    #    cd "ircnightwatch/$component" || {
-    #        echo "❌ Could not enter ircnightwatch/$component"
-    #        exit 1
-    #    }
-    #    make -f Makefile-$component || {
-    #        echo "❌ $component make failed"
-    #        exit 1
-    #    }
-    #    cd ../..
-    #done
-
-    cd ircnightwatch && make env-setup && make
+    cd ircnightwatch || {
+        echo "❌ Could not enter ircnightwatch directory"
+        exit 1
+    }
+    
+    # Check if Makefile exists
+    if [ -f "Makefile" ]; then
+        make || {
+            echo "❌ Make failed"
+            exit 1
+        }
+    else
+        echo "⚠️ No Makefile found in ircnightwatch directory"
+    fi
+    
+    cd ..
 }
-
 
 # Function to check GL-MT300N connection
 check_gl_mt300n() {
@@ -119,18 +152,52 @@ open_qr_code() {
 launch_live_project() {
     echo "🚀 Launching Ableton project..."
     LIVE_PROJECT_NAME="RDN_Liveset"
-    PROJECT_PATH="$HOME/Music/Ableton/$LIVE_PROJECT_NAME"
-
+    
+    # Load paths from .env file
+    if [ -f ".env" ]; then
+        echo "📄 Reading .env file..."
+        # Read .env file line by line
+        while IFS='=' read -r key value; do
+            # Skip empty lines and comments
+            [[ -z "$key" || "$key" =~ ^# ]] && continue
+            # Remove any quotes and trim whitespace
+            value=$(echo "$value" | tr -d '"'"'" | xargs)
+            key=$(echo "$key" | xargs)
+            # Export the variable
+            export "$key"="$value"
+            echo "   Loaded: $key=$value"
+        done < .env
+    else
+        echo "❌ .env file not found. Please run install.sh first."
+        exit 1
+    fi
+    
+    # Check if ABLETON_PROJECTS_DIR is set
+    if [ -z "$ABLETON_PROJECTS_DIR" ]; then
+        echo "❌ ABLETON_PROJECTS_DIR not set in .env file. Please run install.sh first."
+        echo "   Current .env contents:"
+        cat .env
+        exit 1
+    fi
+    
+    # Check if RDN_Liveset directory exists
+    PROJECT_PATH="$ABLETON_PROJECTS_DIR/$LIVE_PROJECT_NAME"
     if [ ! -d "$PROJECT_PATH" ]; then
-        echo "❌ Could not find the RDN_Liveset project."
+        echo "❌ RDN_Liveset project not found at: $PROJECT_PATH"
+        echo "   Please run install.sh first."
         exit 1
     fi
-
-    ALS_FILE=$(find "$PROJECT_PATH" -maxdepth 1 -type f -name "*.als" | head -n 1)
+    
+    # Find the most recent .als file
+    echo "🔍 Looking for .als files in: $PROJECT_PATH"
+    ALS_FILE=$(find "$PROJECT_PATH" -maxdepth 1 -type f -name "*.als" | sort -r | head -n 1)
+    
     if [ -z "$ALS_FILE" ]; then
-        echo "❌ No .als file found in: $PROJECT_PATH"
+        echo "❌ No .als files found in: $PROJECT_PATH"
         exit 1
     fi
+    
+    echo "📂 Found most recent Live Set: $ALS_FILE"
 
     # Check for Ableton Live versions
     LIVE_12_PATH="/Applications/Ableton Live 12 Suite.app"

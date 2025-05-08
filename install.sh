@@ -11,6 +11,69 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     exit 1
 fi
 
+# Function to validate and prompt for directory
+validate_and_prompt_dir() {
+    local default_path="$1"
+    local prompt_message="$2"
+    local env_var_name="$3"
+    local dir_path
+
+    if [ -d "$default_path" ]; then
+        dir_path="$default_path"
+        echo "✅ Found directory: $dir_path" >&2  # Redirect to stderr
+    else
+        echo "⚠️ Directory not found at: $default_path" >&2
+        echo "👉 $prompt_message" >&2
+        read -r dir_path
+        while [ ! -d "$dir_path" ]; do
+            echo "❌ Invalid directory. Please enter a valid path:" >&2
+            read -r dir_path
+        done
+    fi
+
+    # For ABLETON_PROJECTS_DIR, ensure we use the correct path
+    if [ "$env_var_name" = "ABLETON_PROJECTS_DIR" ]; then
+        # If the path ends with RDN_Liveset, remove it
+        if [[ "$dir_path" == */RDN_Liveset ]]; then
+            dir_path="${dir_path%/RDN_Liveset}"
+        fi
+        echo "📁 Using Ableton projects directory: $dir_path" >&2
+    fi
+
+    # Add to .env file
+    if [ ! -f ".env" ]; then
+        echo "# AVNightwatch Environment Variables" > .env
+        echo "# Created by install.sh" >> .env
+        echo "" >> .env
+        # Add default WEBSOCKET_URL
+        echo "WEBSOCKET_URL=http://127.0.0.1:6000" >> .env
+        echo "" >> .env
+    fi
+    
+    # Remove any existing line with this variable
+    sed -i '' "/^$env_var_name=/d" .env
+    
+    # Add the new variable
+    echo "$env_var_name=\"$dir_path\"" >> .env
+    
+    echo "✅ Saved path to .env file" >&2
+    
+    # Return just the path, no messages
+    echo "$dir_path"
+}
+
+# Validate and get Ableton Live project directory
+ABLETON_PROJECT_DIR=$(validate_and_prompt_dir \
+    "$HOME/Music/Ableton" \
+    "Enter your Ableton Live projects directory path:" \
+    "ABLETON_PROJECTS_DIR")
+
+# Validate and get Max for Live devices directory
+MAX_DEVICES_DIR=$(validate_and_prompt_dir \
+    "$HOME/Music/Max 8/Max For Live Devices" \
+    "Enter your Max for Live devices directory path:" \
+    "MAX_DEVICES_DIR")
+
 # Check for Ableton Live 11 or 12
 LIVE_11_PATH="/Applications/Ableton Live 11 Suite.app"
 LIVE_12_PATH="/Applications/Ableton Live 12 Suite.app"
@@ -83,11 +146,10 @@ fi
 # Define source and destination paths
 PROJECT_NAME="RDN_Orchestrator_2.1 Project"
 SOURCE_PROJECT_PATH="$(cd "$(dirname "$0")/$PROJECT_NAME" && pwd)"
-M4L_DEVICES_PATH="$MAX_USER_FOLDER/Max For Live Devices"
-DEST_PROJECT_PATH="$M4L_DEVICES_PATH/$PROJECT_NAME"
+DEST_PROJECT_PATH="$MAX_DEVICES_DIR/$PROJECT_NAME"
 
 # Ensure destination folder exists
-mkdir -p "$M4L_DEVICES_PATH"
+mkdir -p "$MAX_DEVICES_DIR"
 
 # Confirm source folder exists
 if [ ! -d "$SOURCE_PROJECT_PATH" ]; then
@@ -171,9 +233,12 @@ cd "$ORIGINAL_DIR"
 # === Install Ableton Live Project ===
 
 LIVE_PROJECT_NAME="RDN_Liveset"
-MUSIC_ROOT="$HOME/Music/Ableton"
-DEST_PROJECT_PATH="$MUSIC_ROOT/$LIVE_PROJECT_NAME"
-SOURCE_PROJECT_PATH="$ORIGINAL_DIR/$LIVE_PROJECT_NAME"
+DEST_PROJECT_PATH="$ABLETON_PROJECT_DIR/$LIVE_PROJECT_NAME"
+SOURCE_PROJECT_PATH="$(cd "$(dirname "$0")" && pwd)/$LIVE_PROJECT_NAME"
+
+echo "📦 Installing Ableton Live project..."
+echo "   From: $SOURCE_PROJECT_PATH"
+echo "   To: $DEST_PROJECT_PATH"
 
 # If it already exists, prompt before overwriting
 if [ -d "$DEST_PROJECT_PATH" ]; then
@@ -192,6 +257,7 @@ if [ -d "$DEST_PROJECT_PATH" ]; then
             ;;
         s|S)
             echo "⏭️ Skipping project copy step."
+            exit 0
             ;;
         c|C)
             echo "❌ Installation canceled by user."
@@ -206,18 +272,21 @@ fi
 
 # Copy the project
 if [ -d "$SOURCE_PROJECT_PATH" ]; then
-    echo "📦 Copying '$LIVE_PROJECT_NAME' to: $MUSIC_ROOT"
-    # Handle possible nested RDN_Liveset folder
-    NESTED_PATH="$SOURCE_PROJECT_PATH/$LIVE_PROJECT_NAME"
-
-    if [ -d "$NESTED_PATH" ]; then
-        echo "📦 Detected nested RDN_Liveset. Copying inner folder instead..."
-        cp -R "$NESTED_PATH" "$DEST_PROJECT_PATH"
+    echo "📦 Copying '$LIVE_PROJECT_NAME' to: $DEST_PROJECT_PATH"
+    cp -R "$SOURCE_PROJECT_PATH" "$DEST_PROJECT_PATH"
+    COPY_STATUS=$?
+    if [ $COPY_STATUS -eq 0 ]; then
+        echo "✅ Live project installed at: $DEST_PROJECT_PATH"
     else
-        echo "📦 Copying '$LIVE_PROJECT_NAME' to: $MUSIC_ROOT"
-        cp -R "$SOURCE_PROJECT_PATH" "$DEST_PROJECT_PATH"
+        echo "❌ Failed to copy project (error code: $COPY_STATUS)"
+        echo "   Source: $SOURCE_PROJECT_PATH"
+        echo "   Destination: $DEST_PROJECT_PATH"
+        echo "   Please check:"
+        echo "   - Source directory exists and is readable"
+        echo "   - Destination directory exists and is writable"
+        echo "   - You have enough disk space"
+        exit 1
     fi
-    echo "✅ Live project installed at: $DEST_PROJECT_PATH"
 else
     echo "❌ Source Live project folder not found at: $SOURCE_PROJECT_PATH"
     exit 1
