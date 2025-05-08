@@ -213,8 +213,8 @@ launch_live_project() {
         echo "📊 Checking Ableton Live version: $LIVE_VERSION"
         
         # Compare versions
-        if [ "$(printf '%s\n' "11.3.43" "$LIVE_VERSION" | sort -V | head -n1)" != "11.3.43" ]; then
-            echo "❌ Ableton Live version $LIVE_VERSION is too old. Please update to version 11.3.43 or newer."
+        if [ "$(printf '%s\n' "11.3.42" "$LIVE_VERSION" | sort -V | head -n1)" != "11.3.42" ]; then
+            echo "❌ Ableton Live version $LIVE_VERSION is too old. Please update to version 11.3.42 or newer."
             exit 1
         else
             LIVE_APP="$LIVE_11_PATH"
