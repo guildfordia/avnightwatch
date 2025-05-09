@@ -44,9 +44,7 @@ validate_and_prompt_dir() {
     if [ ! -f ".env" ]; then
         echo "# AVNightwatch Environment Variables" > .env
         echo "# Created by install.sh" >> .env
-        echo "" >> .env
-        # Add default WEBSOCKET_URL
-        echo "WEBSOCKET_URL=http://127.0.0.1:6000" >> .env
+        cp .env.example .env
         echo "" >> .env
     fi
     
@@ -62,17 +60,17 @@ validate_and_prompt_dir() {
     echo "$dir_path"
 }
 
-# Validate and get Ableton Live project directory
+# Validate and get Ableton Live projects directory
 ABLETON_PROJECT_DIR=$(validate_and_prompt_dir \
     "$HOME/Music/Ableton" \
     "Enter your Ableton Live projects directory path:" \
     "ABLETON_PROJECTS_DIR")
 
-# Validate and get Max for Live devices directory
-MAX_DEVICES_DIR=$(validate_and_prompt_dir \
-    "$HOME/Music/Max 8/Max For Live Devices" \
-    "Enter your Max for Live devices directory path:" \
-    "MAX_DEVICES_DIR")
+# Validate and get Max for Live projects directory
+MAX_PROJECTS_DIR=$(validate_and_prompt_dir \
+    "$HOME/Music/Max 8/Projects" \
+    "Enter your Max for Live projects directory path:" \
+    "MAX_PROJECTS_DIR")
 
 # Check for Ableton Live 11 or 12
 LIVE_11_PATH="/Applications/Ableton Live 11 Suite.app"
@@ -91,8 +89,8 @@ elif [ -d "$LIVE_11_PATH" ]; then
     echo "📊 Checking Ableton Live version: $LIVE_VERSION"
     
     # Compare versions
-    if [ "$(printf '%s\n' "11.3.41" "$LIVE_VERSION" | sort -V | head -n1)" != "11.3.41" ]; then
-        echo "❌ Ableton Live version $LIVE_VERSION is too old. Please update to version 11.3.41 or newer."
+    if [ "$(printf '%s\n' "11.3.42" "$LIVE_VERSION" | sort -V | head -n1)" != "11.3.42" ]; then
+        echo "❌ Ableton Live version $LIVE_VERSION is too old. Please update to version 11.3.42 or newer."
         exit 1
     else
         echo "✅ Ableton Live version $LIVE_VERSION is compatible."
@@ -129,27 +127,27 @@ fi
 echo "✅ Ableton Live and Max found — assuming Max for Live is available."
 
 # Locate Max 8 user folder or prompt
-DEFAULT_MAX_USER_FOLDER="$HOME/Music/Max 8"
-if [ -d "$DEFAULT_MAX_USER_FOLDER" ]; then
-    MAX_USER_FOLDER="$DEFAULT_MAX_USER_FOLDER"
-    echo "📁 Max 8 user folder found: $MAX_USER_FOLDER"
-else
-    echo "⚠️ Max 8 folder not found at: $DEFAULT_MAX_USER_FOLDER"
-    echo "👉 Enter your Max 8 user folder path manually:"
-    read -r MAX_USER_FOLDER
-    if [ ! -d "$MAX_USER_FOLDER" ]; then
-        echo "❌ Invalid path. Aborting."
-        exit 1
-    fi
-fi
+#DEFAULT_MAX_PROJECTS_FOLDER="$HOME/Music/Max 8/Projects"
+#if [ -d "$DEFAULT_MAX_PROJECTS_FOLDER" ]; then
+#    MAX_PROJECTS_FOLDER="$DEFAULT_MAX_PROJECTS_FOLDER"
+#    echo "📁 Max 8 user folder found: $MAX_PROJECTS_FOLDER"
+#else
+#    echo "⚠️ Max 8 folder not found at: $DEFAULT_MAX_PROJECTS_FOLDER"
+#    echo "👉 Enter your Max 8 Projects folder path manually:"
+#    read -r MAX_PROJECTS_FOLDER
+#    if [ ! -d "$MAX_PROJECTS_FOLDER" ]; then
+#        echo "❌ Invalid path. Aborting."
+#        exit 1
+#    fi
+3fi
 
 # Define source and destination paths
 PROJECT_NAME="RDN_Orchestrator_2.1 Project"
 SOURCE_PROJECT_PATH="$(cd "$(dirname "$0")/$PROJECT_NAME" && pwd)"
-DEST_PROJECT_PATH="$MAX_DEVICES_DIR/$PROJECT_NAME"
+DEST_PROJECT_PATH="$MAX_PROJECTS_DIR/$PROJECT_NAME"
 
 # Ensure destination folder exists
-mkdir -p "$MAX_DEVICES_DIR"
+mkdir -p "$MAX_PROJECTS_DIR"
 
 # Confirm source folder exists
 if [ ! -d "$SOURCE_PROJECT_PATH" ]; then

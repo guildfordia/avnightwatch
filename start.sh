@@ -260,8 +260,8 @@ read -rp "Enter choice (0/1/2): " MODE
 # Ensure .env exists
 if [ ! -f "$ENV_FILE" ]; then
     if [ -f "$ENV_TEMPLATE" ]; then
-        cp "$ENV_TEMPLATE" "$ENV_FILE"
-        echo "📄 Created .env from .env.example"
+        #cp "$ENV_TEMPLATE" "$ENV_FILE"
+        #echo "📄 Created .env from .env.example"
     else
         echo "❌ No .env or .env.example file found. Aborting."
         exit 1
