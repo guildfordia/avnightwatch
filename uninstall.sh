@@ -5,33 +5,6 @@
 
 echo "🧹 Starting AVNightwatch uninstallation..."
 
-# === Uninstall Max for Live Device ===
-
-M4L_PROJECTS_DIR="$MAX_PROJECTS_DIR"
-PROJECT_NAME="RDN_Orchestrator_2.1 Project"
-M4L_PROJECT_PATH="$M4L_PROJECTS_PATH/$PROJECT_NAME"
-
-if [ -d "$M4L_PROJECT_PATH" ]; then
-    echo "⚠️ Max for Live device '$PROJECT_NAME' found at:"
-    echo "   $M4L_PROJECT_PATH"
-    echo "❓ Do you want to delete it?"
-    echo "  [y] Yes"
-    echo "  [n] No"
-    read -rp "Enter your choice (y/n): " DELETE_M4L
-
-    case "$DELETE_M4L" in
-        y|Y)
-            rm -rf "$M4L_PROJECT_PATH"
-            echo "✅ Deleted Max for Live device."
-            ;;
-        *)
-            echo "⏭️ Skipped deleting Max for Live device."
-            ;;
-    esac
-else
-    echo "ℹ️ Max for Live device not found at: $M4L_PROJECT_PATH"
-fi
-
 # === Uninstall Ableton Live Project ===
 
 LIVE_PROJECT_NAME="RDN_Liveset"

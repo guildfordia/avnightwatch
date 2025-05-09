@@ -260,8 +260,8 @@ read -rp "Enter choice (0/1/2): " MODE
 # Ensure .env exists
 if [ ! -f "$ENV_FILE" ]; then
     if [ -f "$ENV_TEMPLATE" ]; then
-        #cp "$ENV_TEMPLATE" "$ENV_FILE"
-        #echo "📄 Created .env from .env.example"
+        cp "$ENV_TEMPLATE" "$ENV_FILE"
+        echo "📄 Created .env from .env.example"
     else
         echo "❌ No .env or .env.example file found. Aborting."
         exit 1
@@ -294,9 +294,6 @@ case "$MODE" in
             echo "👉 Make sure it's powered on and connected via Ethernet."
             exit 1
         fi
-
-        sed -i '' "s|^WEBSOCKET_URL=.*|WEBSOCKET_URL=http://$PI_HOSTNAME:6000|" "$ENV_FILE"
-        echo "🌐 Set WEBSOCKET_URL=http://$PI_HOSTNAME:6000 in $ENV_FILE"
 
         read -rp "❓ Do you want to SSH into the Raspberry Pi in a new Terminal window? [y/n] " ANSWER
         if [[ "$ANSWER" =~ ^[Yy]$ ]]; then

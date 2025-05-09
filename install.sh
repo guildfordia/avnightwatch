@@ -42,10 +42,14 @@ validate_and_prompt_dir() {
 
     # Add to .env file
     if [ ! -f ".env" ]; then
-        echo "# AVNightwatch Environment Variables" > .env
-        echo "# Created by install.sh" >> .env
-        cp .env.example .env
-        echo "" >> .env
+        if [ -f ".env.example" ]; then
+            cp .env.example .env >&2
+            echo "" >> .env
+            echo "✅ Created .env from .env.example template" >&2
+        else
+            echo "❌ .env.example template not found" >&2
+            exit 1
+        fi
     fi
     
     # Remove any existing line with this variable
@@ -60,17 +64,34 @@ validate_and_prompt_dir() {
     echo "$dir_path"
 }
 
+# Function to update websocket.js with WEBSOCKET_URL
+update_websocket_config() {
+    local websocket_file="$DEST_PROJECT_PATH/RDN_Orchestrator_2.1 Project/node_content/websocket.js"
+    local env_file="$(cd "$(dirname "$0")" && pwd)/.env"
+    
+    # Read WEBSOCKET_URL from .env
+    if [ -f "$env_file" ]; then
+        WEBSOCKET_URL=$(grep "^WEBSOCKET_URL=" "$env_file" | cut -d'=' -f2)
+        if [ -n "$WEBSOCKET_URL" ]; then
+            # Update websocket.js with the URL from .env
+            sed -i '' "s|const socket = io(\"http://localhost:6000\", {|const socket = io(\"$WEBSOCKET_URL\", {|" "$websocket_file"
+            echo "✅ Updated WebSocket URL in websocket.js to: $WEBSOCKET_URL"
+        else
+            echo "⚠️ WEBSOCKET_URL not found in .env file"
+        fi
+    else
+        echo "⚠️ .env file not found at: $env_file"
+    fi
+}
+
+# Save the original directory
+ORIGINAL_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Validate and get Ableton Live projects directory
 ABLETON_PROJECT_DIR=$(validate_and_prompt_dir \
     "$HOME/Music/Ableton" \
     "Enter your Ableton Live projects directory path:" \
     "ABLETON_PROJECTS_DIR")
-
-# Validate and get Max for Live projects directory
-MAX_PROJECTS_DIR=$(validate_and_prompt_dir \
-    "$HOME/Music/Max 8/Projects" \
-    "Enter your Max for Live projects directory path:" \
-    "MAX_PROJECTS_DIR")
 
 # Check for Ableton Live 11 or 12
 LIVE_11_PATH="/Applications/Ableton Live 11 Suite.app"
@@ -126,70 +147,6 @@ fi
 # Assume Max for Live is available if Live 11 and Max are found
 echo "✅ Ableton Live and Max found — assuming Max for Live is available."
 
-# Locate Max 8 user folder or prompt
-#DEFAULT_MAX_PROJECTS_FOLDER="$HOME/Music/Max 8/Projects"
-#if [ -d "$DEFAULT_MAX_PROJECTS_FOLDER" ]; then
-#    MAX_PROJECTS_FOLDER="$DEFAULT_MAX_PROJECTS_FOLDER"
-#    echo "📁 Max 8 user folder found: $MAX_PROJECTS_FOLDER"
-#else
-#    echo "⚠️ Max 8 folder not found at: $DEFAULT_MAX_PROJECTS_FOLDER"
-#    echo "👉 Enter your Max 8 Projects folder path manually:"
-#    read -r MAX_PROJECTS_FOLDER
-#    if [ ! -d "$MAX_PROJECTS_FOLDER" ]; then
-#        echo "❌ Invalid path. Aborting."
-#        exit 1
-#    fi
-3fi
-
-# Define source and destination paths
-PROJECT_NAME="RDN_Orchestrator_2.1 Project"
-SOURCE_PROJECT_PATH="$(cd "$(dirname "$0")/$PROJECT_NAME" && pwd)"
-DEST_PROJECT_PATH="$MAX_PROJECTS_DIR/$PROJECT_NAME"
-
-# Ensure destination folder exists
-mkdir -p "$MAX_PROJECTS_DIR"
-
-# Confirm source folder exists
-if [ ! -d "$SOURCE_PROJECT_PATH" ]; then
-    echo "❌ Project folder not found: $SOURCE_PROJECT_PATH"
-    exit 1
-fi
-
-# Check if the destination folder already exists
-if [ -d "$DEST_PROJECT_PATH" ]; then
-    echo "⚠️ The folder '$DEST_PROJECT_PATH' already exists."
-    echo "❓ What would you like to do?"
-    echo "  [o] Overwrite it"
-    echo "  [s] Skip copying"
-    echo "  [c] Cancel installation"
-    read -rp "Enter your choice (o/s/c): " USER_CHOICE
-
-    case "$USER_CHOICE" in
-        o|O)
-            echo "🗑️ Removing existing folder..."
-            rm -rf "$DEST_PROJECT_PATH"
-            echo "📦 Copying project..."
-            cp -R "$SOURCE_PROJECT_PATH" "$DEST_PROJECT_PATH"
-            echo "✅ Overwritten and installed."
-            ;;
-        s|S)
-            echo "⏭️ Skipping copy step."
-            ;;
-        c|C)
-            echo "❌ Installation canceled by user."
-            exit 1
-            ;;
-        *)
-            echo "❌ Invalid choice. Aborting."
-            exit 1
-            ;;
-    esac
-else
-    echo "📦 Copying '$PROJECT_NAME' to: $DEST_PROJECT_PATH"
-    cp -R "$SOURCE_PROJECT_PATH" "$DEST_PROJECT_PATH"
-    echo "✅ Project copied."
-fi
-
 # Check for npm and Node.js
 echo "🔍 Checking for npm and Node.js..."
 if ! command -v npm &> /dev/null; then
@@ -219,14 +176,6 @@ else
     echo "❌ Could not determine Node.js version."
     exit 1
 fi
-
-# Save the original directory
-ORIGINAL_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-cd "$DEST_PROJECT_PATH"/node_content/ && npm install socket.io-client
-
-# Return to original directory
-cd "$ORIGINAL_DIR"
 
 # === Install Ableton Live Project ===
 
@@ -289,5 +238,14 @@ else
     echo "❌ Source Live project folder not found at: $SOURCE_PROJECT_PATH"
     exit 1
 fi
+
+# Install Node.js dependencies
+cd "$DEST_PROJECT_PATH/RDN_Orchestrator_2.1 Project/node_content/" && npm install socket.io-client
+
+# Return to original directory
+cd "$ORIGINAL_DIR"
+
+# Update websocket.js with WEBSOCKET_URL
+update_websocket_config
 
 echo "🎉 AVNightwatch installation complete."
